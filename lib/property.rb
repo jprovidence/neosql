@@ -135,6 +135,11 @@ module NeoSql
     end
 
 
+    def ==(other)
+      @node == other.node ? true : false
+    end
+
+
     def method_missing(meth, *args)
 
       properties = get_all
@@ -206,62 +211,180 @@ module NeoSql
 
   class RelationshipProperty
 
+    attr_accessor :relationship
+
+    def initialize(h)
+      @relationship = h
+    end
+
+
+    def get(key)
+      RelattionshipProperty.get(@relationship, key)
+    end
+
+
+    def get_all
+      RelationshipProperty.get_all(@relationship)
+    end
+
+
+    def set(key, val="", destructive=false)
+
+      return set_hash(key, destructive) if key.kind_of? Hash
+
+      if destructive
+        RelationshipProperty.set!(@relationship, key, val)
+      else
+        RelationshipProperty.set(@relationship, key, val)
+      end
+
+    end
+
+
+    def set!(key, val="")
+      set(key, val, true)
+    end
+
+
+    def set_hash(hash, destructive=false)
+
+      return set_multiple(hash, destructive) if hash.keys.length > 1
+
+      key = hash.keys[0]
+      val = hash.values[0]
+
+      if destructive
+        RelationshipProperty.set(@relationship, key, val)
+      else
+        RelationshipProperty.set!(@relationship, key, val)
+      end
+
+    end
+
+
+    def set_hash!(hash)
+      set_hash(hash, true)
+    end
+
+
+    def set_multiple(hash, destructive)
+      if destructive
+        RelationshipProperty.set_hash!(@relationship, hash)
+      else
+        RelationshipProperty.set_hash(@relationship, hash)
+      end
+    end
+
+
+    def set_multiple!(hash)
+      set_multiple(hash, true)
+    end
+
+
+    def delete_properties
+      RelationshipProperty.delete_all(@relationship)
+    end
+    alias :delete_all :delete_properties
+
+
+    def delete_property(key)
+      RelationshipProperty.delete(@relationship, key)
+    end
+    alias :delete :delete_property
+
+
+    def each
+      get_all.each do |k, v|
+        yield k, v
+      end
+    end
+
+
+    def each_key
+      get_all.each_key do |k|
+        yield k
+      end
+    end
+
+
+    def each_value
+      get_all.each_value do |v|
+        yield v
+      end
+    end
+
+
+    def [](key)
+      get(key)
+    end
+
+
+    def []=(key, val)
+      set(key, val)
+    end
+
+
+    def <<(param)
+      set(param)
+    end
+
+
+    def ==(other)
+      @relationship == other.relationship ? true : false
+    end
+
+
     class << self
 
       def get(rel, key)
-        rel &&= Httpu.resolve_url(rel))
+        rel = Httpu.resolve_url(rel))
         Httpu.get("#{rel}/properties/#{key}")
       end
 
 
       def get_all(rel)
-        rel &&= Httpu.resolve_url(rel)
+        rel = Httpu.resolve_url(rel)
         Httpu.get("#{rel}/properties")
       end
         
 
       def set(rel, key, val)
-        rel &&= Httpu.resolve_url(rel)
-        copy = get_all(rel)
-        copy[key.intern] = val
-        Httpu.put("#{rel}/properties", copy)
+        rel = Httpu.resolve_url(rel)
+        Httpu.put("#{rel}/properties/#{key}", val)
       end
 
 
       def set!(rel, key, val)
-        rel &&= Httpu.resolve_url(rel)
+        rel = Httpu.resolve_url(rel)
         Httpu.put("#{rel}/properties", {key.intern => val})
       end
 
 
       def set_hash(rel, hash)
 
-        rel &&= Httpu.resolve_url(rel)
-        copy = get_all(rel)
+        rel = Httpu.resolve_url(rel)
 
         hash.each do |k, v|
-          copy[k.intern] = v
+          set(rel, k, v)
         end
-
-        Httpu.put("#{rel}/properties", hash)
 
       end
 
 
       def set_hash!(rel, hash)
-        rel &&= Httpu.resolve_url(rel)
+        rel = Httpu.resolve_url(rel)
         Httpu.put("#{rel}/properties", hash)
       end
 
 
       def delete_all(rel)
-        rel &&= Httpu.resolve_url(rel)
+        rel = Httpu.resolve_url(rel)
         Httpu.delete("#{rel}/properties")
       end
 
 
       def delete(rel, key)
-        rel &&= Httpu.resolve_url(rel)
+        rel = Httpu.resolve_url(rel)
         Httpu.delete("#{rel}/properties/#{key}")
       end
         
