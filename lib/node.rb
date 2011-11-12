@@ -6,7 +6,7 @@ module NeoSQL
                   :traverse_url,
                   :all_typed_relationships_url,
                   :property_url,
-                  :self_url,
+                  :node,
                   :outgoing_typed_relationships_url,
                   :properties_url,
                   :incoming_relationships_url,
@@ -19,21 +19,28 @@ module NeoSQL
                   :node_properties,
                   :h
 
+
     def initialize(h, auto_define_properties=false)
 
       h.each do |k, v|
         next if k == :data || k == :extensions
-        eval("@#{k}_url = \"#{v}\"")
+        eval("@#{k}_url = \"#{v}\"")  unless k == :self
       end
 
-      @data       = h[:data]
-      @extensions = h[:extensions]
-      @node_properties  = nil
-      @h = h
+      @data            = h[:data]
+      @node            = h[:self]
+      @node_properties = nil
+      @extensions      = h[:extensions]
+      @h               = h
 
       define_properties if auto_define_properties
 
     end
+
+
+    def properties
+      NodeProperty.new(@self_url)
+    end  
 
 
     def get(key)
@@ -53,13 +60,11 @@ module NeoSQL
       define_properties unless properties_defined?
       @node_properties
     end
-    alias :all_properties :get_all
-    alias :properties :get_all
 
 
     def set(key, val="", destructive=false)
 
-      set_hash(key, destructive) if key.kind_of? Hash
+      return set_hash(key, destructive) if key.kind_of? Hash
       @node_properties[key] = val
 
       if destructive
@@ -78,10 +83,10 @@ module NeoSQL
 
     def set_hash(hash, destructive)
 
-      set_multiple(hash, destructive) if hash.keys.length > 1
+      return set_multiple(hash, destructive) if hash.keys.length > 1
 
-      key = args[0]
-      val = args[1]
+      key = hash.keys[0]
+      val = hash.values[1]
 
       @node_properties[key] = val
       
@@ -127,7 +132,7 @@ module NeoSQL
       correct_copy = {}
 
       @node_properties.each do |k, v|
-        correct_copy[k] = v unless k == key
+        correct_copy[k] = v unless k.intern == key.intern
       end
 
       set_multiple!(correct_copy)
@@ -229,7 +234,7 @@ module NeoSQL
 
 
     def define_properties
-      @node_properties = NodeProperty.get(node)
+      @node_properties = NodeProperty.get_all(node)
     end
 
 
