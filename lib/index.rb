@@ -2,6 +2,8 @@ module NeoSQL
 
   class Index
 
+    require 'cgi'
+
     attr_accessor :template,
                   :provider,
                   :type
@@ -99,6 +101,69 @@ module NeoSQL
       end
 
 
+      def remove(index, node, key=nil, value=nil)
+        if key.nil? && value.nil?
+          remove_with_node(index, node)
+        elsif !key.nil? && value.nil?
+          remove_with_node_key(index, node, key)
+        elsif !key.nil? && !value.nil?
+          remove_with_node_key_value(index, node, key, value)
+        end
+      end
+
+
+      def remove_with_node(index, node)
+        node  = Node.node_number(node)
+        index = resolve_index_name(index)
+        Httpu.delete("#{$root_url}/db/data/index/node/#{index}/#{node}]")
+      end
+
+
+      def remove_with_node_key(index, node, key)
+        node  = Node.node_number(node)
+        index = resolve_index_name(index)
+        Httpu.delete("#{$root_url}/db/data/index/node/#{index}/#{key}/#{node}")
+      end
+
+
+      def remove_with_node_key_value(index, node, key, value)
+        node  = Node.node_number(node)
+        index = resolve_index_name(index)
+        value = CGI::escape(value)
+        Httpu.delete("#{$root_url}/db/data/index/node/#{index}/#{key}/#{value}/#{node}")
+      end
+
+
+      def find(index, kq, value=nil)
+        if value.nil?
+          find_query(index, kq)
+        else
+          find_exact(index, kq, value)
+        end
+      end
+
+
+      def find_exact(index, key, value)
+        index = resolve_index_name(index)
+        value = CGI::escape(value)
+        res   = Httpu.get("#{$root_url}/db/data/index/node/#{index}/#{key}/#{value}")
+        res.map do |r|
+          Node.new(r)
+        end
+      end
+
+
+      def find_query(index, query)
+        query = CGI::escape(query)
+        index = resolve_index_name(index)
+        res = Httpu.get("#{$root_url}/db/data/index/node/#{index}?query=#{query}")
+        res.map do |r|
+          Node.new(r)
+        end
+      end
+      alias :find_by_query :find_query
+
+
       def resolve_index_name(index)
 
         str = ""
@@ -111,7 +176,7 @@ module NeoSQL
           return index
         end
 
-        str.match(/#{$root_url + "/db/data/index/node/"}(.*?)\/.*/, '')
+        str.match(/#{$root_url + "/db/data/index/node/"}(.*?)\/.*/)
         $1
         
       end
