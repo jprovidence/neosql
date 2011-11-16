@@ -38,6 +38,15 @@ module NeoSQL
       end
 
 
+      def delete(url)
+        uri = URI.parse(url)
+        req = Net::HTTP::Delete.new(uri.path)
+        res = Net::HTTP.start(uri.host, uri.port) do |http|
+          http.request(req)
+        end
+      end
+
+
       def resolve_url(u)
         if u.kind_of?(Relationship) || u.kind_of?(Node)
           u.self_url
