@@ -80,6 +80,11 @@ module NeoSQL
     end
 
 
+    def <<(k, v, node)
+      add(k, v, node)
+    end
+
+
     def ditto(i)
       @template = i.template
       @provider = i.provider
