@@ -10,10 +10,10 @@ module NeoSQL
                   :name
 
     def initialize(name, h=nil)
-      if h.nil?
+      if h.nil? && !Index.index_exists?(name)
         i = Index.create(name)
         ditto(i)
-      elsif h[:template].nil?
+      elsif h[:template].nil? && !Index.index_exists?(name)
         i = Index.create(name, h)
         ditto(i)
       else
@@ -238,6 +238,38 @@ module NeoSQL
         end
       end
       alias :find_by_query :find_query
+
+
+      def get_index(index)
+
+        index = resolve_index_name(index)
+
+        list(true).each do |i|
+          if i.keys[0] == index
+            return Index.new(i.values[0])
+          end
+        end
+
+        nil
+
+      end
+
+
+      def index_exists?(index)
+
+        index = resolve_index_name(index)
+        ret   = false
+
+        list(true).each do |i|
+          if i.keys[0] == index
+            ret = true
+            break
+          end
+        end
+
+        ret
+
+      end
 
 
       def resolve_index_name(index)
