@@ -6,11 +6,87 @@ module NeoSQL
 
     attr_accessor :template,
                   :provider,
-                  :type
+                  :type,
+                  :name
 
-    def initialize(h)
-      @template = h[:template]
+    def initialize(name, h=nil)
+      if h.nil?
+        i = Index.create(name)
+        ditto(i)
+      elsif h[:template].nil?
+        i = Index.create(name, h)
+        ditto(i)
+      else
+        @template = h[:template]
+        @provider = h[:provider]
+        @type     = h[:type]
+        @name     = h[:name]
+      end
     end
+
+    
+    def delete
+      Index.delete(@name)
+    end
+
+
+    def add(key, value, node)
+      Index.add(@name, key, value, node)
+    end
+
+
+    def remove(node, key=nil, value=nil)
+      if key.nil? && value.nil?
+        remove_node(node)
+      elsif !key.nil? && value.nil?
+        remove_node_key(node, key)
+      elsif !key.nil? && !value.nil?
+        remove_node_key_value(node, key, value)
+      end
+    end
+
+
+    def remove_node(node)
+      Index.remove_with_node(@name, node)
+    end
+
+
+    def remove_node_key(node, key)
+      Index.remove_with_node_key(@name, node, key)
+    end
+
+
+    def remove_node_key_value(node, key, value)
+      Index.remove_with_node_key_value(@name, node, key, value)
+    end
+
+
+    def find(kq, value=nil)
+      unless value.nil?
+        find_exact(kq, value)
+      else
+        find_query(kq)
+      end
+    end
+
+
+    def find_exact(key, value)
+      Index.find_exact(@name, key, value)
+    end
+
+
+    def find_query(query)
+      Index.find_query(@name, query)
+    end
+
+
+    def ditto(i)
+      @template = i.template
+      @provider = i.provider
+      @type     = i.type
+      @name     = i.name
+    end
+
 
     class << self
 
