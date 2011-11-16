@@ -20,20 +20,27 @@ module NeoSQL
                   :h
 
 
-    def initialize(h, auto_define_properties=false)
+    def initialize(h=nil, auto_define_properties=false)
 
-      h.each do |k, v|
-        next if k == :data || k == :extensions
-        eval("@#{k}_url = \"#{v}\"")  unless k == :self
+      if h.nil?
+        n = Node.create
+        ditto(n)
+      else
+
+        h.each do |k, v|
+          next if k == :data || k == :extensions
+          eval("@#{k}_url = \"#{v}\"")  unless k == :self
+        end
+
+        @data            = h[:data]
+        @node            = h[:self]
+        @node_properties = nil
+        @extensions      = h[:extensions]
+        @h               = h
+
+        define_properties if auto_define_properties
+
       end
-
-      @data            = h[:data]
-      @node            = h[:self]
-      @node_properties = nil
-      @extensions      = h[:extensions]
-      @h               = h
-
-      define_properties if auto_define_properties
 
     end
 
@@ -238,12 +245,49 @@ module NeoSQL
     end
 
 
+    def commit
+      if @self_url
+        set_hash!(@node_properties)
+      else
+        n = Node.create_with(@node_properites)
+        ditto(n)
+      end
+    end
+
+
+    def ditto(node)
+      if node
+
+        [:outgoing_relationships_url,
+        :traverse_url,
+        :all_typed_relationships_url,
+        :property_url,
+        :node,
+        :outgoing_typed_relationships_url,
+        :properties_url,
+        :incoming_relationships_url,
+        :create_relationship_url,
+        :paged_traverse_url,
+        :all_relationships_url,
+        :incoming_typed_relationships_url,
+        :data,
+        :extensions,
+        :node_properties,
+        :h].each do |field|
+          self.send("#{field}=".intern, node.send(field))
+        end
+
+      end
+    end
+
+
     def respond_to_missing?(meth, include_private)
 
       define_properties unless properties_defined?
 
-      if @node_properties.map {|n| n.to_s}.include?(meth.to_s) ||
-         @node_properties.map {|n| "#{n}="}.include?(meth.to_s)
+      if @node_properties.map {|n| n.to_s}.include?(meth.to_s)  ||
+         @node_properties.map {|n| "#{n}="}.include?(meth.to_s) ||
+         meth.to_s =~ /.*?=/
         true
       else
         super
@@ -260,6 +304,8 @@ module NeoSQL
         get(meth)
       elsif @node_properties.map {|n| "#{n}="}.include?(meth.to_s)
         if args[1] then set(meth.to_s, args[0], args[1]) else set(meth.to_s, args[0]) end
+      elsif meth.to_s =~ /(.*?)=/
+        @node_properties[$1.intern] = args[0]
       else
         super
       end

@@ -15,8 +15,8 @@ module NeoSQL
 
     def initialize(h)
 
-      @from_node_url  = h[:start]
-      @to_node_url    = h[:end]
+      @from_node_url  = Httpu.resolve_url(h[:start])
+      @to_node_url    = Httpu.resolve_url(h[:end])
       @self_url       = h[:self]
       @property_url   = h[:property]
       @properties_url = h[:properties]
@@ -44,7 +44,7 @@ module NeoSQL
 
 
     def properties
-      RelationshipProperties.get_all(@self_url)
+      RelationshipProperty.new(@self_url)
     end
 
 
